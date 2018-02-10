@@ -1,0 +1,12 @@
+xtrack: a satellite tracker. Contains interfaces for driving rotors:
+elevation/azimuth or X/Y.
+Special interface to GODIL HRPT decoder which also contains DiSEqC drivers.
+Part of code is also used in wsa.
+
+Needs:
+. sgtk code (see github: sgtk project)
+. jpeg812 (if jpeg picture needed for background) (see github: jpeg812 project)
+. ftd lib (for GODIL interface)
+
+ftd and jpeg812 may be switched off if not needed; see makefile.
+
