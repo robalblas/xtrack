@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: use_pos.c,v 1.8 2018/02/02 23:15:53 ralblas Exp $
+ * RCSId: $Id: use_pos.c,v 1.9 2018/03/08 10:42:32 ralblas Exp $
  *
  * Satellite tracker 
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: use_pos.c,v $
+ * Revision 1.9  2018/03/08 10:42:32  ralblas
+ * _
+ *
  * Revision 1.8  2018/02/02 23:15:53  ralblas
  * _
  *
@@ -315,13 +318,24 @@ static void do_onepos(struct tm_ms cur_tm,GtkWidget *wnd,SAT *sat)
   if (!sat) return;
   if ((!sat->visible) && (!sat->selected)) return;
   sat->orbit.scan_hor=E_W;
-  calc_satrelposms(cur_tm,&pos_subsat,&satdir,&db->refpos,sat,&db->rotor);
+  {
+    struct tm_ms cur_tm_p=cur_tm;
+    double distp;
+    cur_tm_p.tm.tm_sec--;
+    mktime_ntz(&cur_tm_p.tm);
+    calc_satrelposms(cur_tm_p,&pos_subsat,&satdir,&db->refpos,sat,&db->rotor);
+    distp=satdir.dist;
+    calc_satrelposms(cur_tm,&pos_subsat,&satdir,&db->refpos,sat,&db->rotor);
+    satdir.velo=(distp-satdir.dist)*3.6;
+  }
   sat->pos.lon=pos_subsat.lon;
   sat->pos.lat=pos_subsat.lat;
   sat->dir.elev=satdir.elev;
   sat->dir.azim=satdir.azim;
   sat->dir.x=satdir.x;
   sat->dir.y=satdir.y;
+  sat->dist=satdir.dist;
+  sat->velo=satdir.velo;
 
   if (sat->type==satellite)
   {
@@ -339,7 +353,7 @@ static void do_onepos(struct tm_ms cur_tm,GtkWidget *wnd,SAT *sat)
   if (sat->selected)
   {
     char rgb[3];
-     
+    
     if (db->out_on) { rgb[0]=0x00; rgb[1]=0xff; rgb[2]=0x00; } // green if on
     else            { rgb[0]=0xff; rgb[1]=0x00; rgb[2]=0x00; } // red if off
     calc_rotpos(sat->dir,&db->rotor,db->elev_horiz,db->reptime);
@@ -360,6 +374,7 @@ static void do_onepos(struct tm_ms cur_tm,GtkWidget *wnd,SAT *sat)
       Set_Entry(wnd,LAB_XXX,"%.1f",R2D(satdir.x));
       Set_Entry(wnd,LAB_YYY,"%.1f",R2D(satdir.y));
     }
+    Set_Entry(wnd,LAB_DIST,"%d",(int)(sat->dist/1000.));
     if (db->out_on)
     {
       send_onepos(sat,wnd);

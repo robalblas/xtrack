@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: xtrack.c,v 1.5 2017/04/11 20:42:15 ralblas Exp $
+ * RCSId: $Id: xtrack.c,v 1.6 2018/03/08 09:57:40 ralblas Exp $
  *
  * Satellite tracker 
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: xtrack.c,v $
+ * Revision 1.6  2018/03/08 09:57:40  ralblas
+ * _
+ *
  * Revision 1.5  2017/04/11 20:42:15  ralblas
  * _
  *
@@ -343,13 +346,14 @@ int main(int argc, char **argv)
                              ENTRY,LAB_XXX,"%05.1f",0.,
                              ENTRY,LAB_YYY,"%05.1f",0.,
 #endif
+                             ENTRY,LAB_DIST,"%-9d",0,
                              0
                            );
 
 wb=NULL;
     wb=Create_Entry(LAB_OU,NULL,"%.2f",db->utc_offset);
-    wb=Pack("",'h',wpos,1,wb,1,NULL);
-    wb=Pack(NULL,'v',wtijd,1,wb,1,NULL);
+    wb=Pack("",'h',wtijd,1,wb,1,NULL);
+    wb=Pack(NULL,'v',wpos,1,wb,1,NULL);
 
     wc=SPack(LAB_SATSEL,(db->satsel_bottom?"hs" : "vs"),NULL);
     gtk_widget_set_usize(wc,120,0);

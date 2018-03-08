@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: prefer.c,v 1.5 2018/01/09 21:21:08 ralblas Exp $
+ * RCSId: $Id: prefer.c,v 1.6 2018/03/08 09:09:55 ralblas Exp $
  *
  * preferenc related functions 
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: prefer.c,v $
+ * Revision 1.6  2018/03/08 09:09:55  ralblas
+ * _
+ *
  * Revision 1.5  2018/01/09 21:21:08  ralblas
  * _
  *
@@ -280,12 +283,12 @@ static SAT *is_sun_moon(char *name,SAT *sat)
     if (!strcmp(name,"SUN"))
     {
       sat->type=sun;
-      sat->orbit.height=150000000.*1000.;
+      sat->orbit.height=149600000.*1000.;
     }
     if (!strcmp(name,"MOON"))
     {
       sat->type=moon;
-      sat->orbit.height=150000000.;
+      sat->orbit.height=384422.*1000.;  // 363345...405500
     }
   }
   return sat;

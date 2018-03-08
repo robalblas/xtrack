@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: read_norad.c,v 1.5 2018/02/02 23:14:24 ralblas Exp $
+ * RCSId: $Id: read_norad.c,v 1.6 2018/03/08 10:54:22 ralblas Exp $
  *
  * Satellite tracker 
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: read_norad.c,v $
+ * Revision 1.6  2018/03/08 10:54:22  ralblas
+ * _
+ *
  * Revision 1.5  2018/02/02 23:14:24  ralblas
  * _
  *
@@ -72,11 +75,21 @@ void kepler_d2r(KEPLER *kepler)
 
 static void get_satfreq(SAT *sat)
 {
-  if (strstr(sat->satname,"15")) { sat->lfreq=137.620;  sat->hfreq=1702.5; }
-  if (strstr(sat->satname,"16")) { sat->lfreq=0;        sat->hfreq=1698.0; }
-  if (strstr(sat->satname,"17")) { sat->lfreq=0;        sat->hfreq=0;      }
-  if (strstr(sat->satname,"18")) { sat->lfreq=137.9125; sat->hfreq=1707.0; }
-  if (strstr(sat->satname,"19")) { sat->lfreq=137.100;  sat->hfreq=1698.0; }
+  if (strstr(sat->satname,"NOAA"))
+  {
+    if (strstr(sat->satname,"15"))     { sat->hfreq=1702.5; sat->lfreq=137.620;   }
+    if (strstr(sat->satname,"16"))     { sat->hfreq=0;      sat->lfreq=0;         }
+    if (strstr(sat->satname,"17"))     { sat->hfreq=0;      sat->lfreq=0;         }
+    if (strstr(sat->satname,"18"))     { sat->hfreq=1707.0; sat->lfreq=137.9125;  }
+    if (strstr(sat->satname,"19"))     { sat->hfreq=1698.0; sat->lfreq=137.100;   }
+  }
+  if (strstr(sat->satname,"METEOR"))   { sat->hfreq=1700.0; }
+  if (strstr(sat->satname,"METOP-A"))  { sat->hfreq=1701.3; }
+  if (strstr(sat->satname,"METOP-B"))  { sat->hfreq=1701.3; }
+  if (strstr(sat->satname,"METOP-C"))  { sat->hfreq=1701.3; }
+  if (strstr(sat->satname,"YUN 3A"))   { sat->hfreq=1704.5; }
+  if (strstr(sat->satname,"YUN 3B"))   { sat->hfreq=1704.5; }
+  if (strstr(sat->satname,"YUN 3C"))   { sat->hfreq=1701.3; }
 }
 
 SAT *read_msat(FILE *fp,char *satnames_toload,SAT *sat)
@@ -102,22 +115,25 @@ SAT *read_msat(FILE *fp,char *satnames_toload,SAT *sat)
         {
           sat->orbit.max_sens_angle=D2R(55.4); /* for NOAA */
           sat->orbit.width_original=2048;
-          if (sat->lfreq==0.) get_satfreq(sat);
+          if (sat->hfreq==0.) get_satfreq(sat); // if freq. not defined use fixed one
         }
         else if (strstr(sat->satname,"METOP"))
         {
           sat->orbit.max_sens_angle=D2R(55.4); /* for Metop */
           sat->orbit.width_original=2048;
+          if (sat->hfreq==0.) get_satfreq(sat);
         }
         else if (strstr(sat->satname,"METEOR"))
         {
           sat->orbit.max_sens_angle=D2R(55.4); /* for Meteor */
           sat->orbit.width_original=1540;
+          if (sat->hfreq==0.) get_satfreq(sat);
         }
         else if (strstr(sat->satname,"FENG"))
         {
           sat->orbit.max_sens_angle=D2R(55.4); /* for Fengyun */
           sat->orbit.width_original=2048;
+          if (sat->hfreq==0.) get_satfreq(sat);
         }
         else if (strstr(sat->satname,"SEASTAR??")) /* To find out actual name! */
         {

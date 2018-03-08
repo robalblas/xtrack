@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: debug_wnd.c,v 1.7 2018/02/02 22:50:09 ralblas Exp $
+ * RCSId: $Id: debug_wnd.c,v 1.8 2018/03/07 22:37:48 ralblas Exp $
  *
  * Satellite tracker 
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: debug_wnd.c,v $
+ * Revision 1.8  2018/03/07 22:37:48  ralblas
+ * _
+ *
  * Revision 1.7  2018/02/02 22:50:09  ralblas
  * _
  *
@@ -58,6 +61,7 @@
 #define LAB_STOP "Stop"
 #define LAB_NSTOP "NOODStop"
 #define LAB_STORM "Storm"
+#define LAB_DISLIM2 "Disable lim."
 #define LAB_DRIVEEAST "Drive East"
 #define LAB_DRIVEWEST "Drive West"
 #define LAB_DEQCSEND1 "diseqc X"
@@ -313,6 +317,25 @@ static void test_usbcommands(GtkWidget *widget, gpointer dat)
     else
       flick_but(widget,LAB_DEQCSEND2);
   }
+  if (!strcmp(name,LAB_DISLIM2))
+  {
+    diseqc.addr=0x31;  // azim rotor
+    diseqc.cmd=0x63;   // limits off
+    Set_Entry(widget,LAB_DEQCADDR,"%x",diseqc.addr);
+    Set_Entry(widget,LAB_DEQCADDRb,"%x",diseqc.addr);
+    Set_Entry(widget,LAB_DEQCCMD,"%x",diseqc.cmd);
+    Set_Entry(widget,LAB_DEQCCMDb,"%x",diseqc.cmd);
+    Set_Entry(widget,LAB_DEQCDAT0,"");
+    Set_Entry(widget,LAB_DEQCDAT0b,"");
+    Set_Entry(widget,LAB_DEQCDAT1,"");
+    Set_Entry(widget,LAB_DEQCDAT1b,"");
+    diseqc1.addr=diseqc.addr;
+    diseqc2.addr=diseqc.addr;
+    diseqc1.cmd=diseqc.cmd;
+    diseqc2.cmd=diseqc.cmd;
+    flick_but(widget,LAB_DEQCSEND1);
+    flick_but(widget,LAB_DEQCSEND2);
+  }
 
   if (!strcmp(name,LAB_DEQCSEND1))
   {
@@ -445,6 +468,7 @@ void Menu_Debug(GtkWidget *widget,gpointer data)
   w[5]=Create_ButtonArray("Do commands",test_usbcommands,1,
            BUTTON,LAB_NSTOP,
            BUTTON,LAB_STORM,
+           BUTTON,LAB_DISLIM2,
            0);
   w[4]=Pack(NULL,'h',w[4],1,w[5],1,NULL);
 

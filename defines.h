@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: defines.h,v 1.4 2017/04/11 20:53:13 ralblas Exp $
+ * RCSId: $Id: defines.h,v 1.5 2018/03/08 09:48:54 ralblas Exp $
  *
  * menu/button names etc.
  * Project: xtrack 
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: defines.h,v $
+ * Revision 1.5  2018/03/08 09:48:54  ralblas
+ * _
+ *
  * Revision 1.4  2017/04/11 20:53:13  ralblas
  * _
  *
@@ -93,6 +96,7 @@
 #define LAB_AZI "^azim"
 #define LAB_XXX "^X"
 #define LAB_YYY "^Y"
+#define LAB_DIST "^Distance"
 #define LAB_OU "^+utc"
 #define LAB_RUN "Run"
 #define ASEL "Auto sel"

@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: sattrack.h,v 1.4 2017/04/23 20:03:39 ralblas Exp $
+ * RCSId: $Id: sattrack.h,v 1.5 2018/03/08 10:34:54 ralblas Exp $
  *
  *  
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: sattrack.h,v $
+ * Revision 1.5  2018/03/08 10:34:54  ralblas
+ * _
+ *
  * Revision 1.4  2017/04/23 20:03:39  ralblas
  * _
  *
@@ -170,6 +173,8 @@ typedef struct direction
 {
   float elev,azim;
   float x,y;
+  double dist;
+  double velo;
 } DIRECTION;
 
 typedef struct rotor
@@ -205,6 +210,8 @@ typedef struct sat
   SATTYPE type;
   float hfreq,lfreq;
   struct track *track;
+  double dist;
+  double velo;
 } SAT;
 
 typedef struct track

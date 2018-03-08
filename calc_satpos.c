@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: calc_satpos.c,v 1.4 2017/04/11 19:56:13 ralblas Exp $
+ * RCSId: $Id: calc_satpos.c,v 1.5 2018/03/08 10:34:34 ralblas Exp $
  *
  * Calculate current observation point for polar satellites 
  * Project: SSI
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: calc_satpos.c,v $
+ * Revision 1.5  2018/03/08 10:34:34  ralblas
+ * _
+ *
  * Revision 1.4  2017/04/11 19:56:13  ralblas
  * _
  *
@@ -124,7 +127,6 @@ int calc_orbitconst(KEPLER *kepler,ORBIT *orbit)
 
   orbit->loop_time=24.*3600./kepler->motion;
   orbit->height=(pow(orbit->loop_time/PIx2/sqrt(Rearth/G0),2./3.)-1)*Rearth;
-
   orbit->k2_n=Const * pow(Rearth/(Rearth+orbit->height),3.5) * 
                           (2.5*pow(cos(kepler->inclination),2.)-0.5);
 
@@ -304,7 +306,7 @@ void calcposrel(KEPLER *kepler,ORBIT *orbit,
 /*************************************
  * Calculate elevation/azimuth wrt observer position
  *************************************/
-static void calceleazim(EPOINT *pos_subsat,ORBIT *orbit,EPOINT *refpos,
+static double calceleazim(EPOINT *pos_subsat,ORBIT *orbit,EPOINT *refpos,
               DIRECTION *satdir,ROTOR *rot)
 {
   double gamma;
@@ -352,6 +354,7 @@ static void calceleazim(EPOINT *pos_subsat,ORBIT *orbit,EPOINT *refpos,
     satdir->y+=D2R(90.);
   else
     satdir->y=D2R(90.)-satdir->y;
+  return dist;
 }
 
 
@@ -397,14 +400,14 @@ void calc_onepos(SAT *sat,struct tm cur_tm,int cur_ms,
   }
 }
 
-// calc. sat. relative to pos. om earth; calc elevation/azimuth/x/y
+// calc. sat. relative to pos. on earth; calc elevation/azimuth/x/y
 void calc_satrelpos(struct tm cur_tm,EPOINT *pos_subsat,DIRECTION *satdir,EPOINT *refpos,
      SAT *sat,ROTOR *rot)
 {
   EPOINT pos_sat;
   EPOINT pos_earth;
   calc_onepos(sat,cur_tm,0,&pos_earth,&pos_sat,pos_subsat,refpos);
-  calceleazim(pos_subsat,&sat->orbit,refpos,satdir,rot);
+  satdir->dist=calceleazim(pos_subsat,&sat->orbit,refpos,satdir,rot);
 }
 
 void calc_satrelposms(struct tm_ms cur_tm,EPOINT *pos_subsat,DIRECTION *satdir,EPOINT *refpos,
@@ -413,7 +416,7 @@ void calc_satrelposms(struct tm_ms cur_tm,EPOINT *pos_subsat,DIRECTION *satdir,E
   EPOINT pos_sat;
   EPOINT pos_earth;
   calc_onepos(sat,cur_tm.tm,cur_tm.ms,&pos_earth,&pos_sat,pos_subsat,refpos);
-  calceleazim(pos_subsat,&sat->orbit,refpos,satdir,rot);
+  satdir->dist=calceleazim(pos_subsat,&sat->orbit,refpos,satdir,rot);
 }
 
 static void do_xystorm(ROTOR *rot,float reptime)

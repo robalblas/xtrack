@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: parse_norad.c,v 1.2 2016/03/25 18:43:14 ralblas Exp $
+ * RCSId: $Id: parse_norad.c,v 1.3 2018/02/26 21:39:46 ralblas Exp $
  *
  * NORAD 2 lines format routine.
  * Parse NORAD file 
@@ -10,6 +10,9 @@
  *
  * History: 
  * $Log: parse_norad.c,v $
+ * Revision 1.3  2018/02/26 21:39:46  ralblas
+ * _
+ *
  * Revision 1.2  2016/03/25 18:43:14  ralblas
  * _
  *
@@ -84,9 +87,9 @@ int read_norad_next_keps(FILE *fp,char *sat_name,KEPLER *kepler)
 
 /* Remove trailing non-alphanum characters from line 0 */
   strncpy(sat_name,l0,100);
-  p=sat_name+strlen(sat_name)-1;
 
-//  while ((p > sat_name) && (!isalnum(*p)))  p--; *(p+1)=0;
+  if ((p=strchr(sat_name,'('))) *p=0;  // remove second name 
+  p=sat_name+strlen(sat_name)-1;
   while ((p > sat_name) && (strchr(" \n\r	",*p)))  p--; *(p+1)=0;
 
 /* Parse line 1 */
