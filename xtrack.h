@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: xtrack.h,v 1.6 2017/08/20 09:18:53 ralblas Exp $
+ * RCSId: $Id: xtrack.h,v 1.7 2018/02/04 14:35:20 ralblas Exp $
  *
  * main header file 
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: xtrack.h,v $
+ * Revision 1.7  2018/02/04 14:35:20  ralblas
+ * _
+ *
  * Revision 1.6  2017/08/20 09:18:53  ralblas
  * _
  *
@@ -110,7 +113,7 @@ typedef struct colors
   GdkColor red,green,blue;
   GdkColor ssat_pnt,ssat_vis,ssat_track,ssat_scan;  // selected: point,area,track,scan
   GdkColor usat_pnt,usat_vis,usat_track,usat_scan;  // not selected: same
-  GdkColor ref_pnt,ref_vis;
+  GdkColor ref_pnt,ref_vis,ref_visobs;
   GdkColor raster,number;
 } COLOR;
 
@@ -124,6 +127,10 @@ typedef struct dbase
   SAT *sat_sel;
   SAT *next_sat;
   int force_pass_e1_w0;
+  
+  gboolean do_forcepos;
+  EPOINT forced_pos;
+
   struct tm glob_tm;
   struct tm_ms glob_tm_ms;
   struct tm_offset tm_off;
@@ -154,7 +161,9 @@ typedef struct dbase
   gboolean setscrolflag;
   float elev_horiz;
   float elev_det;
+  gboolean show_radiohorizon_obs;
   gboolean show_radiohorizon;
+  gboolean show_visual_area;
   struct track *track;
   gboolean hres;
   gboolean start_now;

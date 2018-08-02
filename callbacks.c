@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: callbacks.c,v 1.6 2018/01/12 08:53:22 ralblas Exp $
+ * RCSId: $Id: callbacks.c,v 1.7 2018/02/09 18:58:31 ralblas Exp $
  *
  * callbacks of button actions 
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: callbacks.c,v $
+ * Revision 1.7  2018/02/09 18:58:31  ralblas
+ * _
+ *
  * Revision 1.6  2018/01/12 08:53:22  ralblas
  * _
  *
@@ -278,6 +281,7 @@ void mouse_actions(GtkWidget *widget, GdkEventMotion *event)
     y=event->y;
     state=event->state;
   }
+  Set_Entry(widget,LAB_CURSPOS,"%4.1f  %4.1f",Y2LAT(y),X2LON(x));
   if (state & GDK_BUTTON1_MASK)
   {
     if (!button1_up)

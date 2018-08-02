@@ -1,12 +1,15 @@
 /**************************************************
- * RCSId: $Id: xtrack_gtkfunc.h,v 1.2 2017/04/11 20:58:13 ralblas Exp $
+ * RCSId: $Id: xtrack_gtkfuncs.h,v 1.4 2018/02/04 15:11:00 ralblas Exp $
  *
  * func defs for GUI callback funcs
  * Project: xtrack
  * Author: R. Alblas
  *
  * History: 
- * $Log: xtrack_basefunc.h,v $
+ * $Log: xtrack_gtkfuncs.h,v $
+ * Revision 1.4  2018/02/04 15:11:00  ralblas
+ * _
+ *
  * Revision 1.2  2017/04/11 20:58:13  ralblas
  * _
  *
@@ -44,7 +47,7 @@ void Update_Main(GtkWidget *);
 void Update_Main_Wait(GtkWidget *);
 void tm2adjust(GtkWidget *wnd,struct tm tm);
 
-void draw_onepos(struct tm cur_tm,GtkWidget *wnd,SAT *sat,EPOINT pos_sat,EPOINT pos_earth);
+void draw_onepos(struct tm cur_tm,GtkWidget *wnd,SAT *sat,EPOINT pos_sat);
 void draw_onepos_all(GtkWidget *);
 
 void report_nextpass(GtkWidget *,SAT *);
@@ -65,7 +68,7 @@ void draw_horizon(GtkWidget *wnd,float lon,float lat);
 void draw_sat(GtkWidget *,SAT *,float ,float ,gboolean);
 void draw_sensor(GtkWidget *,SAT *sat,EPOINT *,EPOINT *,gboolean);
 void draw_sattrack(GtkWidget *wnd,EPOINT p1,EPOINT p2,gboolean rgbm,int p);
-void draw_vis(GtkWidget *,SAT *,EPOINT *,gboolean,GdkColor);
+void draw_vis(GtkWidget *,SAT *,EPOINT *,gboolean,GdkColor,float);
 void draw_back(GtkWidget *);
 void redraw(GtkWidget *,struct tm cur_tm);
 void Create_kepleredt_wnd(GtkWidget *);

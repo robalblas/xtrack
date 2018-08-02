@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: xtrack_basefunc.h,v 1.2 2017/04/11 20:58:13 ralblas Exp $
+ * RCSId: $Id: xtrack_basefunc.h,v 1.3 2018/02/04 22:13:51 ralblas Exp $
  *
  * func defs, also for other programs using tracking code
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: xtrack_basefunc.h,v $
+ * Revision 1.3  2018/02/04 22:13:51  ralblas
+ * _
+ *
  * Revision 1.2  2017/04/11 20:58:13  ralblas
  * _
  *
@@ -44,7 +47,8 @@ void calc_satrelpos(struct tm cur_tm,EPOINT *pos_subsat,DIRECTION *satdir,EPOINT
 void calcposearth(struct tm *cur_tm, int ms, EPOINT *pos_earth);
 void calc_satrelposms(struct tm_ms cur_tm,EPOINT *pos_subsat,DIRECTION *satdir,EPOINT *refpos,SAT *sat,ROTOR *rot);
 void calc_x2satobs(KEPLER *,ORBIT *,EPOINT *,EPOINT *,int,float,int);
-gboolean calc_rotpos(DIRECTION satdir,ROTOR *rotor,float elev_horiz,float reptime);
+gboolean calc_rotpos(DIRECTION satdir,gboolean will_track,ROTOR *rotor,float elev_horiz,float reptime);
+void calc_satrelinfo(struct tm_ms cur_tmms,SAT *sat,ROTOR *rotor,EPOINT *refpos,gboolean calc_velo);
 
 int read_norad_next_keps(FILE *fp,char *sat_name,KEPLER *kepler);
 SAT *Find_Sat(SAT *sat,char *satname);

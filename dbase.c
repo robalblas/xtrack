@@ -59,6 +59,8 @@ SAT *add_moon(SAT **sat)
 
 #define ZON
 #define MAAN
+// sat1: only check if sun/moon already in list
+// return: linked sat with only sun/moon
 static SAT *add_sunmoon(SAT *sat1)
 {
   SAT *sat=NULL;
@@ -73,6 +75,12 @@ static SAT *add_sunmoon(SAT *sat1)
   return sat;
 }
 
+list_sats(SAT *sat)
+{
+  Rewind(sat);
+  for (; sat; sat=sat->next) printf("%s\n",sat->satname);
+}
+
 // replace db->sat by sat; keep flags in db->sat
 int add_to_db(DBASE *db,SAT *sat,gboolean on)
 {
@@ -84,6 +92,7 @@ int add_to_db(DBASE *db,SAT *sat,gboolean on)
 #if __ADD_SUNMOON__ == 1
   sunmoon=add_sunmoon(sat);
 #endif
+  // connect sat to sun/moon
   for (sat_new=sunmoon; ((sat_new) && (sat_new->next)); sat_new=sat_new->next);
   if (sat_new)
   {

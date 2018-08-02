@@ -41,13 +41,15 @@ int usb_init_connect(USB_ITEMS *usb)
   {
     if (!(ftd_id=usb_list_devs()))
     {
-      return -1; // error open ISB
+      return -1; // error open USB
     }
   }
   if((ftStatus = FT_OpenEx(ftd_id, FT_OPEN_BY_SERIAL_NUMBER, &ftHandle)) != FT_OK)
   {
     return -1;  // error open USB
   }
+  // timeout read must be >=1000; 500: ftd unreachable
+                                 //read write
   ftStatus=FT_SetTimeouts(ftHandle,1000,1000);
   usb->ftHandle=ftHandle;
   return 0; // OK

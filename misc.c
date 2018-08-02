@@ -1,12 +1,15 @@
 /**************************************************
- * RCSId: $Id: helprts.c,v 1.4 2018/02/02 23:12:17 ralblas Exp $
+ * RCSId: $Id: misc.c,v 1.1 2018/02/04 11:58:38 ralblas Exp $
  *
  * Satellite tracker 
  * Project: xtrack
  * Author: R. Alblas
  *
  * History: 
- * $Log: helprts.c,v $
+ * $Log: misc.c,v $
+ * Revision 1.1  2018/02/04 11:58:38  ralblas
+ * Initial revision
+ *
  * Revision 1.4  2018/02/02 23:12:17  ralblas
  * _
  *
@@ -314,6 +317,7 @@ void w_dbg(char *frmt,...)
   static GtkWidget *w[3];
   static int n;
   char str[MAXLEN];
+return;
   str[MAXLEN-5]=0;
   va_list arg;
   if (!w[0])

@@ -1,12 +1,18 @@
 /**************************************************
- * RCSId: $Id: predict_meer.c,v 1.7 2018/02/02 22:54:27 ralblas Exp $
+ * RCSId: $Id: predict_xtrack.c,v 1.2 2018/04/08 19:37:09 ralblas Exp $
  *
  * Satellite tracker 
  * Project: xtrack
  * Author: R. Alblas
  *
  * History: 
- * $Log: predict_meer.c,v $
+ * $Log: predict_xtrack.c,v $
+ * Revision 1.2  2018/04/08 19:37:09  ralblas
+ * _
+ *
+ * Revision 1.1  2018/02/09 18:57:40  ralblas
+ * Initial revision
+ *
  * Revision 1.7  2018/02/02 22:54:27  ralblas
  * _
  *
@@ -51,13 +57,13 @@ void select_this_sat(SAT *sat)
 }
 
 /****************************************************************
-  Generate list of overkomsten
+  Generate list of passes
   sat           predict for this sat.
   genstart_tm   start searching from this time
   genstop_tm    stop searching time 
   Return:       linked list of tracks
  ****************************************************************/
-TRACK *gen_track(SAT *sat,struct tm genstart_tm,struct tm genstop_tm)
+static TRACK *gen_track(SAT *sat,struct tm genstart_tm,struct tm genstop_tm)
 {
   GtkWidget *progress_bar;
   TRACK *track=NULL;
@@ -71,7 +77,7 @@ TRACK *gen_track(SAT *sat,struct tm genstart_tm,struct tm genstop_tm)
   start_tm.tm_min=start_tm.tm_sec=0;
   predtimemax=mktime_ntz(&genstop_tm)-mktime_ntz(&start_tm);
   predtime=predtimemax;
-  progress_bar=Create_Progress(NULL,"Predicting...");
+  progress_bar=Create_Progress(NULL,"Predicting...",FALSE);
   while (predtime > 0)
   {
     predtime1=predtime;
@@ -109,13 +115,15 @@ TRACK *gen_track(SAT *sat,struct tm genstart_tm,struct tm genstop_tm)
   return track;
 }
 
+#define NRCOL 9
 static void add_to_list(GtkWidget *w,TRACK *tr,gboolean hres)
 {
-  char *tmp[7];
-  char txt[7][100];
+  char *tmp[NRCOL];
+  char txt[NRCOL][100];
   struct tm tm;
   int pday=-1;
   int rownr=0;
+  int i;
   gtk_clist_clear(GTK_CLIST(w));
   for (; tr; tr=tr->next)
   {
@@ -123,8 +131,9 @@ static void add_to_list(GtkWidget *w,TRACK *tr,gboolean hres)
     tm.tm_hour+=db->utc_offset; mktime_ntz(&tm);
     if (tm.tm_mday!=pday)
     {
-      tmp[0]="-----------------------------------------"; tmp[1]=tmp[2]=tmp[3]=tmp[4]=tmp[5]=tmp[0];
-      tmp[6]="0";
+      tmp[0]="-----------------------------------------";
+      for (i=1; i<NRCOL-1; i++) tmp[i]=tmp[0];
+      tmp[NRCOL-1]="0";
       gtk_clist_append(GTK_CLIST(w), tmp);
     } 
     pday=tm.tm_mday;
@@ -137,25 +146,21 @@ static void add_to_list(GtkWidget *w,TRACK *tr,gboolean hres)
     tm=tr->maxelev_time; tm.tm_hour+=db->utc_offset; mktime_ntz(&tm);
     sprintf(txt[3],"%s",tmstrsh(&tm));
     sprintf(txt[4],"%4.1f",R2D(tr->max_elev));
+    sprintf(txt[5],"%c",tr->pass_e1_w0? 'E' : 'W');
+    sprintf(txt[6],"%s",tr->going_south? "N->S" : "S->N");
     if (hres)
-      sprintf(txt[5],"%.1f",tr->sat->hfreq);
+      sprintf(txt[7],"%.1f",tr->sat->hfreq);
     else
-      sprintf(txt[5],"%.3f",tr->sat->lfreq);
-    sprintf(txt[6],"%d",++rownr);
-    tmp[0]=txt[0];
-    tmp[1]=txt[1];
-    tmp[2]=txt[2];
-    tmp[3]=txt[3];
-    tmp[4]=txt[4];
-    tmp[5]=txt[5];
-    tmp[6]=txt[6];
+      sprintf(txt[7],"%.3f",tr->sat->lfreq);
+    sprintf(txt[8],"%d",++rownr);
+    for (i=0; i<NRCOL; i++) tmp[i]=txt[i];
     gtk_clist_append(GTK_CLIST(w), tmp);
   }
 }
 
 
 /****************************************************************
-  Generate list of overkomsten and create list
+  Generate list of passes and create list
   sat           predict for this sat.
   genstart_tm   start searching from this time
   genstop_tm    stop searching time 
@@ -339,14 +344,24 @@ void generate_txt(FILE *fp,TRACK *track,SAT *sat)
 {
   TRACK *tr;
 //  fprintf(fp,"%s_%d\n",db->sat_sel->satname,db->genstart_tm.tm_mon+1);
+  fprintf(fp,"%-15s%-10s%-10s%-10s%-10s%s\n","Satellite","Date","Uptime","Downtime","Max.","@elev.");
   for (tr=track; tr; tr=tr->next)
   {
-    fprintf(fp,"%-15s ",tr->sat->satname);
+    fprintf(fp,"%-15s",tr->sat->satname);
+    fprintf(fp,"%-10s",tmstrshx(gm2local(&tr->up_time),"m"));
+    fprintf(fp,"%-10s",tmstrshx(gm2local(&tr->up_time),"HMS"));
+    fprintf(fp,"%-10s",tmstrshx(gm2local(&tr->down_time),"HMS"));
+    fprintf(fp,"%-10s",tmstrshx(gm2local(&tr->maxelev_time),"HMS"));
+    fprintf(fp,"%4.1f",R2D(tr->max_elev));
+    fprintf(fp,"\n");
+
+/*
     fprintf(fp,"%-10s",tmstrsh(gm2local(&tr->up_time)));
     fprintf(fp,"%-10s",tmstrsh(gm2local(&tr->down_time)));
     fprintf(fp,"%-10s",tmstrsh(gm2local(&tr->maxelev_time)));
     fprintf(fp,"%4.1f",R2D(tr->max_elev));
     fprintf(fp,"\n");
+*/
   }
 }
 

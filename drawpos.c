@@ -84,7 +84,7 @@ static void draw_trackpiece(GtkWidget *wnd,SAT *sat,struct tm cur_tm,gboolean rg
 }
 
 // draw one sat on it's position
-void draw_onepos(struct tm cur_tm,GtkWidget *wnd,SAT *sat,EPOINT pos_sat,EPOINT pos_earth)
+void draw_onepos(struct tm cur_tm,GtkWidget *wnd,SAT *sat,EPOINT pos_sat)
 {
 //  static SAT *prev_selected;
   gboolean rgb_flag=TRUE;
@@ -98,7 +98,9 @@ void draw_onepos(struct tm cur_tm,GtkWidget *wnd,SAT *sat,EPOINT pos_sat,EPOINT 
   clr_s.red=0xff; clr_s.green=0; clr_s.blue=0xff;
   clr_u.red=0xff; clr_u.green=0; clr_u.blue=0;
   if (sat->selected) clr1=db->clrs.ssat_vis; else clr1=db->clrs.usat_vis;
-  draw_vis(wnd,sat,&pos_subsat,rgb_flag,clr1);
+
+  if (db->show_visual_area)
+    draw_vis(wnd,sat,&pos_subsat,rgb_flag,clr1,0.);
 
   if (sat->selected)
     draw_trackpiece(wnd,sat,cur_tm,TRUE);

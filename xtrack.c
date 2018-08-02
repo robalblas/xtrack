@@ -172,7 +172,7 @@ void Menu_Debugd(GtkWidget *widget,gpointer data)
 #include <locale.h>
 int main(int argc, char **argv)
 {
-  GtkWidget *main_window,*canvas,*menu;
+  GtkWidget *main_window,*canvas,*menu,*w;
   GdkColor clr[MAXCOL];
   GdkColormap clrmap;
   
@@ -294,6 +294,11 @@ int main(int argc, char **argv)
                                   MENU_DEBUG ,Menu_Debug     ,BUTTON,
                                 0);
 
+  w=Create_Entry(LAB_CURSPOS,NULL,"%-20s","");
+  menu=Pack(NULL,'h',menu,1,w,1,NULL);
+
+  w=Create_Entry(LAB_KEPAGE,NULL,"%-3d",db->sat_sel->orbit.data_age);
+  menu=Pack(NULL,'h',menu,1,w,1,NULL);
 
 /* Create the canvas */
   canvas=Create_Canvas(main_window,
@@ -420,15 +425,24 @@ void draw_points(GtkWidget *wnd,char *fn)
 
 void refresh_wnd(GtkWidget *wnd)
 {
-  GdkColor clr;
+  GdkColor clr,clr2;
   GtkWidget *drawing_area=Find_Widget(wnd,"GTK_DRAWING_AREA");
   int wnd_width;
   int wnd_height;
-  clr=db->clrs.ref_vis; //rgb2clr(0x88,0x88,0x88);
+  clr=db->clrs.ref_vis; 
+  clr2=db->clrs.ref_visobs; 
   wnd_width=drawing_area->allocation.width;
   wnd_height=drawing_area->allocation.height;
   draw_ref(wnd,db->refpos.lon,db->refpos.lat,TRUE);
-  if (db->show_radiohorizon) draw_vis(wnd,db->sat_sel,&db->refpos,TRUE,clr);
+
+  if (db->sat_sel->type==satellite)
+  {
+    if (db->show_radiohorizon)
+      draw_vis(wnd,db->sat_sel,&db->refpos,TRUE,clr,0.);
+
+    if (db->show_radiohorizon_obs)
+      draw_vis(wnd,db->sat_sel,&db->refpos,TRUE,clr2,db->elev_horiz);
+  }
 #ifdef TEKENPUNTEN
 draw_points(wnd,"scat.txt");
 #endif

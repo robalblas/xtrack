@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: predict.c,v 1.3 2017/04/11 20:40:25 ralblas Exp $
+ * RCSId: $Id: predict.c,v 1.5 2018/04/18 21:42:09 ralblas Exp $
  *
  * predict 
  * Project: xtrack
@@ -7,6 +7,12 @@
  *
  * History: 
  * $Log: predict.c,v $
+ * Revision 1.5  2018/04/18 21:42:09  ralblas
+ * _
+ *
+ * Revision 1.4  2018/02/04 15:44:46  ralblas
+ * _
+ *
  * Revision 1.3  2017/04/11 20:40:25  ralblas
  * _
  *
@@ -86,6 +92,7 @@ static gboolean search_horizon(SAT *sat,int sec_incr,
 /* calc. mom. position */
     calc_satrelpos(*start_tm,pos_subsat,&satdir,refpos,sat,rot);
     if (mom_elev) *mom_elev=satdir.elev;
+//printf("mom_elev: %f\n",satdir.elev);
 
     switch(search_mode)
     {
@@ -100,7 +107,10 @@ static gboolean search_horizon(SAT *sat,int sec_incr,
           prev_elev=*mom_elev;
         }
       case search_down: /* Also case search_maxelev! */
-        if (satdir.elev<elev_hor) return TRUE;
+        if (satdir.elev<elev_hor){
+//printf("mom_elev: %f  %f\n",R2D(satdir.elev),R2D(elev_hor));
+ return TRUE;
+}
       break;
       default: break;
     }
@@ -118,22 +128,27 @@ static gboolean search_horizon(SAT *sat,int sec_incr,
   refpos      reference postion
   elev_hor    sat visible if elevation > this number
   elev_det    ignore if max. elevation < this number
-  forward     FALSE: skip current pass if so; TRUE: include current pass
+  forward     TRUE: skip current pass if so; FALSE: include current pass
  ****************************************************************/
 gboolean predict(SAT *sat,struct tm *start_tm,struct tm *stop_tm,TRACK *tr,EPOINT *refpos,ROTOR *rot,
                  float elev_hor,float elev_det,gboolean forward)
 {
-  int trials=10;
+  int trials=100;
 /* Search 'down'; find last sat. pass */
+  sat->maxelev_nextpass=elev_hor;
+
   do
   {
     int jump_out=(forward? 30 : -30);
+    int fast_search=(sat->type==moon? 30 : 30);
+
+    // go to 'sat down', backward or forward */
     if (!search_horizon(sat,jump_out,search_down,start_tm,&tr->up_pos,rot,NULL,refpos,elev_hor))
       return FALSE; // can't find 'sat=down'
 
     /* ========== Search satellite Up ========== */
     /* Seach 'Up' fast (! uptime < 30 secs: may skip) */
-    if (!search_horizon(sat,30,search_up,start_tm,&tr->up_pos,rot,NULL,refpos,elev_hor))
+    if (!search_horizon(sat,fast_search,search_up,start_tm,&tr->up_pos,rot,NULL,refpos,elev_hor))
       return FALSE; // can't find 'sat=up'
 
     /* Go back 1 min and search 'Up' precise */
@@ -158,7 +173,7 @@ gboolean predict(SAT *sat,struct tm *start_tm,struct tm *stop_tm,TRACK *tr,EPOIN
     /* Found max. elev */
     tr->maxelev_time=*stop_tm;
     tr->pass_e1_w0=(tr->maxelev_pos.lon > refpos->lon? 1 : 0);
-    sat->pass_e1_w0=tr->pass_e1_w0;
+    tr->going_south=(tr->maxelev_pos.lat < tr->up_pos.lat? TRUE : FALSE);
 
     /* ========== Search satellite Down ========== */
     /* Asume 'Up', search 'Down' fast */
@@ -174,12 +189,18 @@ gboolean predict(SAT *sat,struct tm *start_tm,struct tm *stop_tm,TRACK *tr,EPOIN
     /* Found down-time */
     tr->down_time=*stop_tm;
 
+    // Copy some current pass info. 
+    // Will be overwritten if predict is used to catch later passes!
     sat->max_elev=tr->max_elev;
-    if (tr->max_elev>=elev_det) break;
+    if (sat->maxelev_nextpass<=elev_hor) sat->maxelev_nextpass=tr->max_elev;
+    sat->maxelev_time=tr->maxelev_time;
+    sat->pass_e1_w0=tr->pass_e1_w0;
+    if (tr->max_elev>=elev_det) break;  // accepted
+    if (sat->type==moon) break; // accept always moon (may take long time to calc. pass above high elev) 
     *start_tm=*stop_tm;
     start_tm->tm_min++;
   } while ((trials--) >0);
-if (trials==0) return FALSE;
+  if (trials==0) return FALSE;
   /* Ready; both start and stop time determined. */
   return TRUE;
 }

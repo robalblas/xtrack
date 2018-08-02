@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: calc_satpos.c,v 1.5 2018/03/08 10:34:34 ralblas Exp $
+ * RCSId: $Id: calc_satpos.c,v 1.7 2018/04/24 21:21:45 ralblas Exp $
  *
  * Calculate current observation point for polar satellites 
  * Project: SSI
@@ -7,6 +7,12 @@
  *
  * History: 
  * $Log: calc_satpos.c,v $
+ * Revision 1.7  2018/04/24 21:21:45  ralblas
+ * _
+ *
+ * Revision 1.6  2018/04/22 12:10:10  ralblas
+ * _
+ *
  * Revision 1.5  2018/03/08 10:34:34  ralblas
  * _
  *
@@ -398,6 +404,11 @@ void calc_onepos(SAT *sat,struct tm cur_tm,int cur_ms,
       calcposrel(&sat->kepler,&sat->orbit,pos_sat,pos_earth,pos_subsat);
     break;
   }
+  if (sat->do_forcepos)
+  {
+    pos_subsat->lon=sat->forced_pos.lon;
+    pos_subsat->lat=sat->forced_pos.lat;
+  }
 }
 
 // calc. sat. relative to pos. on earth; calc elevation/azimuth/x/y
@@ -419,9 +430,10 @@ void calc_satrelposms(struct tm_ms cur_tm,EPOINT *pos_subsat,DIRECTION *satdir,E
   satdir->dist=calceleazim(pos_subsat,&sat->orbit,refpos,satdir,rot);
 }
 
-static void do_xystorm(ROTOR *rot,float reptime)
+static int do_xystorm(ROTOR *rot,float reptime)
 {
   static int tx,ty;
+  int ret=0;
   if (reptime)
   {
     tx=rot->storm_wait_x/reptime;
@@ -429,18 +441,25 @@ static void do_xystorm(ROTOR *rot,float reptime)
   }
   else
   {
+    ret=tx+ty;
     if (tx) tx--; else rot->to_rotor.x=rot->storm.x;
     if (ty) ty--; else rot->to_rotor.y=rot->storm.y;
   }
+//w_dbg("  storm: tx=%d  ty=%d  ret=%d\n",tx,ty,ret);
+  return ret;
 }
 
-gboolean calc_rotpos(DIRECTION satdir,ROTOR *rotor,float elev_horiz,float reptime)
+// set pos. to send in 'rotor'
+// return:  1: above horizon
+//         -1: below horizon, but needs more time to set otor to storm
+//          0: below horizon, ready
+int calc_rotpos(DIRECTION satdir,gboolean will_track,ROTOR *rotor,float elev_horiz,float reptime)
 {
-  gboolean op=FALSE;
-  if (satdir.elev>=elev_horiz)
+  int ret=0;
+  if ((satdir.elev>=elev_horiz) && (will_track))
   {
-    op=TRUE;
-    do_xystorm(rotor,reptime);
+    ret=1;
+    do_xystorm(rotor,reptime);     // set wait time x/y storm
     rotor->to_rotor.x=R2D(satdir.x);
     rotor->to_rotor.y=R2D(satdir.y);
     rotor->to_rotor.azim=R2D(satdir.azim);
@@ -448,9 +467,58 @@ gboolean calc_rotpos(DIRECTION satdir,ROTOR *rotor,float elev_horiz,float reptim
   }
   else
   {
-    do_xystorm(rotor,0.);
+    if (do_xystorm(rotor,0.)) ret=-1; else ret=0;
     rotor->to_rotor.azim=rotor->storm.azim;
     rotor->to_rotor.elev=rotor->storm.elev;
   }
-  return op;
+  
+  // add offsets
+  rotor->to_rotor.x+=rotor->offset.x;
+  rotor->to_rotor.y+=rotor->offset.y;
+  rotor->to_rotor.azim+=rotor->offset.azim;
+  rotor->to_rotor.elev+=rotor->offset.elev;
+
+  if (rotor->to_rotor.azim<0) rotor->to_rotor.azim+=360;
+  if (rotor->to_rotor.azim>360) rotor->to_rotor.azim-=360;
+  return ret;
+}
+
+void calc_satrelinfo(struct tm_ms cur_tmms,SAT *sat,ROTOR *rotor,EPOINT *refpos,gboolean calc_velo)
+{
+  EPOINT pos_subsat;
+  DIRECTION satdir;
+  struct tm_ms cur_tm_p=cur_tmms;
+  double distp;
+  float lat;
+
+  if (calc_velo)
+  {
+    // determine speed
+    cur_tm_p.tm.tm_sec--;
+    mktime_ntz(&cur_tm_p.tm);
+    calc_satrelposms(cur_tm_p,&pos_subsat,&satdir,refpos,sat,rotor);
+    distp=satdir.dist;
+    lat=pos_subsat.lat;
+  }
+
+  calc_satrelposms(cur_tmms,&pos_subsat,&satdir,refpos,sat,rotor);
+
+  satdir.velo=0.;
+  if (calc_velo)
+  {
+    satdir.velo=(distp-satdir.dist)*3.6;
+  }
+
+  if (lat < pos_subsat.lat)
+  {
+    sat->orbit.scan_ver=S_N;
+    sat->orbit.scan_hor=E_W;
+  }
+  else
+  {
+    sat->orbit.scan_ver=N_S;
+    sat->orbit.scan_hor=W_E;
+  }
+  sat->pos=pos_subsat;
+  sat->dir=satdir;
 }

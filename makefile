@@ -13,9 +13,8 @@
 # Linus: set OS="linux"
 # Windows: set OS="windows"; use mingw
 ##############################################################
-RELEASE1=2018.1
+RELEASE1=2018.3a
 RELEASE=\"$(RELEASE1)\"
-#RELEASE=\"2018.1\"
 
 #Choose linux or windows
 OS="linux"
@@ -24,13 +23,13 @@ OS="linux"
 GTK_REL="2.0"
 
 #Add USB interface for GODIL connection
-ADD_USB  ="FALSE"
+ADD_USB  ="TRUE"
 ADD_RS232="TRUE"
 ADD_JPEG ="TRUE"
 ADD_SUNMOON="TRUE"
 #DBGFLAG="-g"
 ##################################################################
-SUBDIR=..
+SUBDIR=.
 
 ifneq ($(OS),"linux")
   ifneq ($(OS),"windows")
@@ -111,7 +110,7 @@ CCFLAGS=$(LOC_INCS) $(GTKCONFIG_CFLAG) $(CFLAGS_EXTRA)
 SRC_XMAIN=xtrack.c callbacks.c dbase.c dbase_prims.c predict.c predict_xtrack.c drawpos.c calc_satpos.c \
           calc_sunmoon.c parse_norad.c write_ps.c draw.c misc.c subwnds.c \
           read_norad.c prefer.c gif_read.c rs232.c use_pos.c  jpeg.c \
-          debug_wnd.c sel_refpos.c satmap.c
+          debug_wnd.c sel_refpos.c satmap.c pos2extprog.c pos2uart.c
 OBJ_XMAIN = $(subst .c,.o,$(SRC_XMAIN))
 
 INC_JPEG=$(LOC_JPEGSRC)/jpeglib.h $(LOC_JPEGSRC)/cdjpeg.h $(LOC_JPEGSRC)/jinclude.h \
@@ -119,7 +118,7 @@ INC_JPEG=$(LOC_JPEGSRC)/jpeglib.h $(LOC_JPEGSRC)/cdjpeg.h $(LOC_JPEGSRC)/jinclud
 
 INC_XMAIN=xtrack.h defines.h orbit.h gif.h rs232.h \
           xtrack_func.h  xtrack_basefunc.h xtrack_gtkfuncs.h \
-          sattrack.h sattrack_funcs.h
+          sattrack.h 
 
 #USB-stuff if needed
 ifeq ($(ADD_USB),"TRUE")

@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: sattrack.h,v 1.5 2018/03/08 10:34:54 ralblas Exp $
+ * RCSId: $Id: sattrack.h,v 1.6 2018/04/21 22:01:03 ralblas Exp $
  *
  *  
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: sattrack.h,v $
+ * Revision 1.6  2018/04/21 22:01:03  ralblas
+ * _
+ *
  * Revision 1.5  2018/03/08 10:34:54  ralblas
  * _
  *
@@ -190,6 +193,7 @@ typedef struct rotor
   DIRECTION storm;
   int storm_wait_x;
   int storm_wait_y;
+  DIRECTION offset;
 } ROTOR;
 
 typedef struct sat
@@ -204,14 +208,19 @@ typedef struct sat
   EPOINT pos;
   DIRECTION dir;
   float max_elev;
+  float maxelev_nextpass;
   int pass_e1_w0;
+  struct tm maxelev_time;
   gboolean visible; 
   gboolean selected; 
   SATTYPE type;
   float hfreq,lfreq;
   struct track *track;
-  double dist;
-  double velo;
+
+  gboolean do_forcepos;
+  EPOINT forced_pos;
+//  double dist;
+//  double velo;
 } SAT;
 
 typedef struct track
@@ -228,6 +237,7 @@ typedef struct track
   struct tm maxelev_time;
   float max_elev;
   int pass_e1_w0;
+  gboolean selected;
   gboolean going_south;
   gboolean done;
 } TRACK;

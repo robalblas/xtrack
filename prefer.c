@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: prefer.c,v 1.6 2018/03/08 09:09:55 ralblas Exp $
+ * RCSId: $Id: prefer.c,v 1.7 2018/04/04 21:01:05 ralblas Exp $
  *
  * preferenc related functions 
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: prefer.c,v $
+ * Revision 1.7  2018/04/04 21:01:05  ralblas
+ * _
+ *
  * Revision 1.6  2018/03/08 09:09:55  ralblas
  * _
  *
@@ -216,6 +219,7 @@ static void default_colors(COLOR *clrs)
 
   clrs->ref_pnt   =rgb2clr(0xff,0x00,0xff);   // reference
   clrs->ref_vis   =rgb2clr(0x00,0x00,0xff);
+  clrs->ref_visobs=rgb2clr(0x00,0xff,0x00);
 
   clrs->raster    =rgb2clr(0xf0,0xf0,0xf0);
   clrs->number    =rgb2clr(0x00,0x00,0x00);
@@ -245,6 +249,8 @@ void init_db(DBASE *db,char loc)
 
   db->elev_horiz=0;
   db->show_radiohorizon=TRUE;
+  db->show_radiohorizon_obs=FALSE;
+  db->show_visual_area=TRUE;
   db->ppl=FACT;
   db->zx=db->zy=1.;
   db->satsel_bottom=FALSE;
@@ -263,6 +269,10 @@ void init_db(DBASE *db,char loc)
   db->rotor.storm.y=90.;
   db->rotor.storm.elev=90.;
   db->rotor.storm.azim=0.;
+  db->rotor.offset.x=0.;
+  db->rotor.offset.y=0.;
+  db->rotor.offset.elev=0.;
+  db->rotor.offset.azim=0.;
   db->rotor.deg2step=16;
   db->rotor.inv_x=FALSE;
   db->rotor.inv_y=FALSE;
@@ -364,6 +374,8 @@ void Read_Prefs(char *progname,DBASE *db)
     if (!strcmp(w1,"Elev_detect"))   db->elev_det=D2R((float)atoi(w2));
     if (!strcmp(w1,"Elev_horizon"))  db->elev_horiz=D2R((float)atoi(w2));
     if (!strcmp(w1,"Radio_horizon")) db->show_radiohorizon=(*(w2+1)=='n'? TRUE : FALSE);
+    if (!strcmp(w1,"Radio_horizon_obs")) db->show_radiohorizon_obs=(*(w2+1)=='n'? TRUE : FALSE);
+    if (!strcmp(w1,"Sat_visual_area")) db->show_visual_area=(*(w2+1)=='n'? TRUE : FALSE);
 
     if (!strcmp(w1,"Stormpos_x"))    db->rotor.storm.x=atof(w2);
     if (!strcmp(w1,"Stormpos_y"))    db->rotor.storm.y=atof(w2);
@@ -371,6 +383,10 @@ void Read_Prefs(char *progname,DBASE *db)
     if (!strcmp(w1,"Storm_wait_y"))  db->rotor.storm_wait_y=atoi(w2);
     if (!strcmp(w1,"Stormpos_elev")) db->rotor.storm.elev=atof(w2);
     if (!strcmp(w1,"Stormpos_azim")) db->rotor.storm.azim=atof(w2);
+    if (!strcmp(w1,"Offset_x"))      db->rotor.offset.x=atof(w2);
+    if (!strcmp(w1,"Offset_y"))      db->rotor.offset.y=atof(w2);
+    if (!strcmp(w1,"Offset_elev"))   db->rotor.offset.elev=atof(w2);
+    if (!strcmp(w1,"Offset_azim"))   db->rotor.offset.azim=atof(w2);
     if (!strcmp(w1,"DiSEqC_Deg2step"))     db->rotor.deg2step=atoi(w2);
     if (!strcmp(w1,"DiSEqC_Limit"))        db->rotor.xy_rotorlim=atoi(w2);
     if (!strcmp(w1,"Flip_X"))              db->rotor.inv_x=atoi(w2);
@@ -385,6 +401,7 @@ void Read_Prefs(char *progname,DBASE *db)
     if (!strcmp(w1,"Clr.sat_scanline_nsel")) db->clrs.usat_scan=int2gdkclr(strtol(w2,NULL,16));
     if (!strcmp(w1,"Clr.ref_mark"))        db->clrs.ref_pnt=int2gdkclr(strtol(w2,NULL,16));
     if (!strcmp(w1,"Clr.radio_hor"))       db->clrs.ref_vis=int2gdkclr(strtol(w2,NULL,16));
+    if (!strcmp(w1,"Clr.radio_hor_obs"))   db->clrs.ref_visobs=int2gdkclr(strtol(w2,NULL,16));
     if (!strcmp(w1,"Clr.raster"))          db->clrs.raster=int2gdkclr(strtol(w2,NULL,16));
     if (!strcmp(w1,"Clr.number"))          db->clrs.number=int2gdkclr(strtol(w2,NULL,16));
 
@@ -431,6 +448,8 @@ void Read_Prefs(char *progname,DBASE *db)
       db->start_now=(!strncmp(w2,"y",1)? TRUE : FALSE);
     if (!strcmp(w1,"Ext_progs"))
       db->ext_on=(!strncmp(w2,"y",1)? TRUE : FALSE);
+    if (!strcmp(w1,"Freq"))
+      db->hres=(!strncmp(w2,"L",1)? FALSE : TRUE);
     if (!strcmp(w1,"Output_pos"))
       db->out_on=(!strncmp(w2,"y",1)? TRUE : FALSE);
     if (!strcmp(w1,"Serial"))
@@ -540,48 +559,55 @@ void Save_Prefs(DBASE *db,gboolean save_sat)
 /*
   fprintf(fp,"Hour_Offset  : %d\n",db->hour_offset);
 */
-  fprintf(fp,"Observer_Name: %s\n",db->refpos_name);
-  fprintf(fp,"Observer_Lon : %f\n",R2D(db->refpos.lon));
-  fprintf(fp,"Observer_Lat : %f\n",R2D(db->refpos.lat));
+  fprintf(fp,"Observer_Name    : %s\n",db->refpos_name);                        
+  fprintf(fp,"Observer_Lon     : %f\n",R2D(db->refpos.lon));                    
+  fprintf(fp,"Observer_Lat     : %f\n",R2D(db->refpos.lat));                    
 
-  fprintf(fp,"Rotortype    : %s\n",(db->rotor.use_xy? "X-Y": "Elev-Azim"));
-  fprintf(fp,"X_at_Disc    : %d\n",db->rotor.x_at_disc);
-  fprintf(fp,"X_Dir_0      : %s\n",db->rotor.x_west_is_0?"west":"east");
-  fprintf(fp,"Y_Dir_0      : %s\n",db->rotor.y_south_is_0?"south":"north");
+  fprintf(fp,"Rotortype        : %s\n",(db->rotor.use_xy? "X-Y": "Elev-Azim")); 
+  fprintf(fp,"X_at_Disc        : %d\n",db->rotor.x_at_disc);                    
+  fprintf(fp,"X_Dir_0          : %s\n",db->rotor.x_west_is_0?"west":"east");    
+  fprintf(fp,"Y_Dir_0          : %s\n",db->rotor.y_south_is_0?"south":"north"); 
 
-  fprintf(fp,"Elev_detect  : %d\n",nint(R2D(db->elev_det)));
-  fprintf(fp,"Elev_horizon : %d\n",nint(R2D(db->elev_horiz)));
-  fprintf(fp,"Radio_horizon: %s\n",(db->show_radiohorizon? "On" : "Off"));
-  fprintf(fp,"Stormpos_x   : %.1f\n",db->rotor.storm.x);
-  fprintf(fp,"Stormpos_y   : %.1f\n",db->rotor.storm.y);
-  fprintf(fp,"Storm_wait_x : %d\n",db->rotor.storm_wait_x);
-  fprintf(fp,"Storm_wait_y : %d\n",db->rotor.storm_wait_y);
-  fprintf(fp,"Stormpos_elev : %.1f\n",db->rotor.storm.elev);
-  fprintf(fp,"Stormpos_azim : %.1f\n",db->rotor.storm.azim);
-  fprintf(fp,"DiSEqC_Deg2step : %d\n",db->rotor.deg2step);
-  fprintf(fp,"DiSEqC_Limit    : %d\n",db->rotor.xy_rotorlim);
-  fprintf(fp,"Flip_X    : %d\n",db->rotor.inv_x);
-  fprintf(fp,"Flip_Y    : %d\n",db->rotor.inv_y);
+  fprintf(fp,"Elev_detect      : %d\n",nint(R2D(db->elev_det)));                
+  fprintf(fp,"Elev_horizon     : %d\n",nint(R2D(db->elev_horiz)));              
+  fprintf(fp,"Radio_horizon    : %s\n",(db->show_radiohorizon? "On" : "Off"));
+  fprintf(fp,"Radio_horizon_obs: %s\n",(db->show_radiohorizon_obs? "On" : "Off"));
+  fprintf(fp,"Sat_visual_area  : %s\n",(db->show_visual_area? "On" : "Off"));
+  fprintf(fp,"Stormpos_x       : %.1f\n",db->rotor.storm.x);
+  fprintf(fp,"Stormpos_y       : %.1f\n",db->rotor.storm.y);
+  fprintf(fp,"Storm_wait_x     : %d\n",db->rotor.storm_wait_x);
+  fprintf(fp,"Storm_wait_y     : %d\n",db->rotor.storm_wait_y);
+  fprintf(fp,"Stormpos_elev    : %.1f\n",db->rotor.storm.elev);
+  fprintf(fp,"Stormpos_azim    : %.1f\n",db->rotor.storm.azim);
+  fprintf(fp,"Offset_x         : %.1f\n",db->rotor.offset.x);
+  fprintf(fp,"Offset_y         : %.1f\n",db->rotor.offset.y);
+  fprintf(fp,"Offset_elev      : %.1f\n",db->rotor.offset.elev);
+  fprintf(fp,"Offset_azim      : %.1f\n",db->rotor.offset.azim);
+  fprintf(fp,"DiSEqC_Deg2step  : %d\n",db->rotor.deg2step);    
+  fprintf(fp,"DiSEqC_Limit     : %d\n",db->rotor.xy_rotorlim); 
+  fprintf(fp,"Flip_X           : %d\n",db->rotor.inv_x);
+  fprintf(fp,"Flip_Y           : %d\n",db->rotor.inv_y);
 
-  fprintf(fp,"Map_file     : %s\n",db->pref_mapfile);
-  fprintf(fp,"Places_file  : %s\n",db->pref_placesfile);
-  fprintf(fp,"Rep_time     : %.1f\n",db->reptime);
-  fprintf(fp,"Dec_display  : %d\n",db->decoderdisplinfo);
-  fprintf(fp,"Run_at_start : %s\n",(db->start_now? "y" : "n"));
-  fprintf(fp,"Output_pos   : %s\n",(db->out_on? "y" : "n"));
-  fprintf(fp,"Ext_progs    : %s\n",(db->ext_on? "y" : "n"));
+  fprintf(fp,"Map_file         : %s\n",db->pref_mapfile);
+  fprintf(fp,"Places_file      : %s\n",db->pref_placesfile);
+  fprintf(fp,"Rep_time         : %.1f\n",db->reptime);
+  fprintf(fp,"Dec_display      : %d\n",db->decoderdisplinfo);
+  fprintf(fp,"Run_at_start     : %s\n",(db->start_now? "y" : "n"));
+  fprintf(fp,"Output_pos       : %s\n",(db->out_on? "y" : "n"));
+  fprintf(fp,"Ext_progs        : %s\n",(db->ext_on? "y" : "n"));
+  fprintf(fp,"Freq             : %s\n",(db->hres? "H" : "L"));
 
-  fprintf(fp,"Serial       : %s\n",(db->to_serial? "y" : "n"));
-  fprintf(fp,"USB          : %s\n",(db->to_usb? "y" : "n"));
-  fprintf(fp,"Portnr       : %d\n",db->rs232.portnr+PORTMIN);
-  fprintf(fp,"Baudrate     : %d\n",db->rs232.speed);
-  fprintf(fp,"Poscmd       : \"%s\"\n",db->rs232.command);
-  fprintf(fp,"Prog_up      : \"%s\"\n",db->prog_up);
-  fprintf(fp,"Prog_down    : \"%s\"\n",db->prog_down);
-  fprintf(fp,"Prog_track   : \"%s\"\n",db->prog_track);
-  fprintf(fp,"Prog_trackup : \"%s\"\n",db->prog_trackup);
+  fprintf(fp,"Serial           : %s\n",(db->to_serial? "y" : "n"));
+  fprintf(fp,"USB              : %s\n",(db->to_usb? "y" : "n"));
+  fprintf(fp,"Portnr           : %d\n",db->rs232.portnr+PORTMIN);
+  fprintf(fp,"Baudrate         : %d\n",db->rs232.speed);
+  fprintf(fp,"Poscmd           : \"%s\"\n",db->rs232.command);
+  fprintf(fp,"Prog_up          : \"%s\"\n",db->prog_up);
+  fprintf(fp,"Prog_down        : \"%s\"\n",db->prog_down);
+  fprintf(fp,"Prog_track       : \"%s\"\n",db->prog_track);
+  fprintf(fp,"Prog_trackup     : \"%s\"\n",db->prog_trackup);
 
-  fprintf(fp,"Font_size    : %d\n",db->fontsize);
+  fprintf(fp,"Font_size        : %d\n",db->fontsize);
   fprintf(fp,"Buttonsatsel_position: %s\n",
               (db->satsel_bottom?"bottom":"right"));
 
@@ -595,6 +621,7 @@ void Save_Prefs(DBASE *db,gboolean save_sat)
   fprintf(fp,"Clr.sat_scanline_nsel: %06x\n",gdkclr2int(db->clrs.usat_scan));
   fprintf(fp,"Clr.ref_mark         : %06x\n",gdkclr2int(db->clrs.ref_pnt));
   fprintf(fp,"Clr.radio_hor        : %06x\n",gdkclr2int(db->clrs.ref_vis));
+  fprintf(fp,"Clr.radio_hor_obs    : %06x\n",gdkclr2int(db->clrs.ref_visobs));
   fprintf(fp,"Clr.raster           : %06x\n",gdkclr2int(db->clrs.raster));
   fprintf(fp,"Clr.number           : %06x\n",gdkclr2int(db->clrs.number));
 
@@ -624,6 +651,8 @@ void Save_Prefs(DBASE *db,gboolean save_sat)
 #define LAB_ELEVHOR "!Start tracking at "
 #define LAB_ELEVDET "!Only track if reaches "
 #define LAB_RADIOHOR "Radio horizon"
+#define LAB_RADIOHOR_OBS "Radio horizon observator"
+#define LAB_SATVISAREA "Sat visual area"
 
 #define LAB_RTYPE     "Rotortype:"
 #define LAB_RTYPEB    "Elev-Azim/ X-Y "
@@ -640,6 +669,12 @@ void Save_Prefs(DBASE *db,gboolean save_sat)
 
 #define LAB_STORME    "!E pos:"
 #define LAB_STORMA    "!A pos:"
+
+#define LAB_OFFSX "!Offset X"
+#define LAB_OFFSY "!Offset Y"
+#define LAB_OFFSE "!Offset Elev"
+#define LAB_OFFSA "!Offset Azim"
+#define LAB_DISEQC "DiSEqC config"
 
 #define LAB_PROGTRACK   "!Run always          "
 #define LAB_PROGUP      "!Run 1x at sat. up   "
@@ -748,7 +783,7 @@ static void callback_pref(GtkWidget *widget,gpointer data)
   }
   if (!strcmp(name,LAB_PLLIST))
   {
-    if (list_places(Find_Parent_Window(widget)))
+    if (list_places(Find_Parent_Window((GtkWidget *)widget)))
       Create_Message("Error","Waypoint file '%s' not found.",db->pref_placesfile);
   }
 
@@ -766,6 +801,14 @@ static void callback_pref(GtkWidget *widget,gpointer data)
   {
     db->show_radiohorizon=Get_Button(widget,LAB_RADIOHOR);
   }
+  if (!strcmp(name,LAB_RADIOHOR_OBS))
+  {
+    db->show_radiohorizon_obs=Get_Button(widget,LAB_RADIOHOR_OBS);
+  }
+  if (!strcmp(name,LAB_SATVISAREA))
+  {
+    db->show_visual_area=Get_Button(widget,LAB_SATVISAREA);
+  }
 
   if (!strcmp(name,LAB_RTYPEB))
   {
@@ -781,6 +824,13 @@ static void callback_pref(GtkWidget *widget,gpointer data)
 
     Sense_Button(widget,LAB_STORME,!db->rotor.use_xy);
     Sense_Button(widget,LAB_STORMA,!db->rotor.use_xy);
+
+    Sense_Button(widget,LAB_OFFSX,db->rotor.use_xy);
+    Sense_Button(widget,LAB_OFFSY,db->rotor.use_xy);
+    Sense_Button(widget,LAB_OFFSE,!db->rotor.use_xy);
+    Sense_Button(widget,LAB_OFFSA,!db->rotor.use_xy);
+
+    Sense_Button(widget,LAB_DISEQC,db->rotor.use_xy);
   }
 
   if (!strcmp(name,LAB_XATDISC))
@@ -861,6 +911,23 @@ static void callback_pref(GtkWidget *widget,gpointer data)
   if (!strcmp(name,LAB_STORMA))
   {
     db->rotor.storm.azim=GTK_ADJUSTMENT(widget)->value;
+  }
+
+  if (!strcmp(name,LAB_OFFSX))
+  {
+    db->rotor.offset.x=GTK_ADJUSTMENT(widget)->value;
+  }
+  if (!strcmp(name,LAB_OFFSY))
+  {
+    db->rotor.offset.y=GTK_ADJUSTMENT(widget)->value;
+  }
+  if (!strcmp(name,LAB_OFFSE))
+  {
+    db->rotor.offset.elev=GTK_ADJUSTMENT(widget)->value;
+  }
+  if (!strcmp(name,LAB_OFFSA))
+  {
+    db->rotor.offset.azim=GTK_ADJUSTMENT(widget)->value;
   }
 
   if (!strcmp(name,LAB_REPTIM))
@@ -1093,7 +1160,7 @@ struct tm abc(struct tm *itm)
 
 static GtkWidget *pref_obs()
 {
-  GtkWidget *wa[5];
+  GtkWidget *wa[6];
   wa[1]=Create_ButtonArray("Location observer:",callback_pref,2,
     LABEL,LAB_POSNAM+1,
     ENTRY,LAB_POSNAM,db->refpos_name,
@@ -1113,6 +1180,9 @@ static GtkWidget *pref_obs()
                            NULL
                         );
   wa[3]=Create_Check(LAB_RADIOHOR,callback_pref,db->show_radiohorizon);
+  wa[4]=Create_Check(LAB_RADIOHOR_OBS,callback_pref,db->show_radiohorizon_obs);
+  wa[5]=Create_Check(LAB_SATVISAREA,callback_pref,db->show_visual_area);
+  wa[3]=Pack("",'v',wa[3],1,wa[4],1,wa[5],1,NULL);
 
   wa[4]=Create_ButtonArray("Time",callback_pref,2,
     LABEL,"Time used for calc. is UTC.",
@@ -1140,7 +1210,7 @@ static GtkWidget *pref_obs()
 
 static GtkWidget *pref_rotor()
 {
-  GtkWidget *wb[4];
+  GtkWidget *wb[5];
   wb[1]=Create_ButtonArray("Rotorconfig",callback_pref,-4,
     LABEL,LAB_RTYPE,
     TOGGLE,LAB_RTYPEB,FALSE,
@@ -1157,7 +1227,7 @@ static GtkWidget *pref_rotor()
     TOGGLE,LAB_Y_DIR,FALSE,
     NULL);
 
-  wb[2]=Create_ButtonArray("DiSEqC config",callback_pref,6,
+  wb[2]=Create_ButtonArray(LAB_DISEQC,callback_pref,6,
         SPIN,LAB_DEG2STEP,"%d%d%d%d",8,db->rotor.deg2step,8,16,
         LABEL,"Limit",
         SPIN,LAB_DEQCLIMIT,"%d%d%d",db->rotor.xy_rotorlim,0,0xffff,
@@ -1189,6 +1259,19 @@ static GtkWidget *pref_rotor()
     LABEL,LAB_STORMA+1,
     SPIN,LAB_STORMA,"%d%d%d%d",1,(int)db->rotor.storm.azim,0,180,
     NULL);
+
+  wb[4]=Create_ButtonArray("Offset",callback_pref,-4,
+    LABEL,LAB_OFFSX+8,
+    SPIN,LAB_OFFSX,"%d%d%d",(int)db->rotor.offset.x,-30,30,
+    LABEL,LAB_OFFSY+8,
+    SPIN,LAB_OFFSY,"%d%d%d",(int)db->rotor.offset.y,-30,30,
+    LABEL,LAB_OFFSE+8,
+    SPIN,LAB_OFFSE,"%d%d%d",(int)db->rotor.offset.elev,-30,30,
+    LABEL,LAB_OFFSA+8,
+    SPIN,LAB_OFFSA,"%d%d%d",(int)db->rotor.offset.azim,-30,30,
+    NULL);
+
+  wb[3]=Pack(NULL,'h',wb[3],1,wb[4],1,NULL);
 
   wb[0]=Pack("",'v',wb[1],10,wb[2],10,wb[3],10,NULL);
   return wb[0];
@@ -1354,21 +1437,22 @@ static GtkWidget *pref_rs232()
   return wf[0];
 }
 
-#define LAB_CLRSPNT    "!Satpos"
-#define LAB_CLRUPNT    "!uSatpos"
-#define LAB_CLRSVIS    "!Area"
-#define LAB_CLRUVIS    "!uArea"
-#define LAB_CLRSTRK    "!Track"
-#define LAB_CLRUTRK    "!uTrack"
-#define LAB_CLRSSNS    "!Scanline"
-#define LAB_CLRUSNS    "!uScanline"
-#define LAB_CLRREFPNT  "!Refpos"
-#define LAB_CLRREFVIS  "!Radiohor"
-#define LAB_CLRRASTER  "!Raster"
-#define LAB_CLRNUMBER  "!Number"
+#define LAB_CLRSPNT       "!Satpos"
+#define LAB_CLRUPNT       "!uSatpos"
+#define LAB_CLRSVIS       "!Area"
+#define LAB_CLRUVIS       "!uArea"
+#define LAB_CLRSTRK       "!Track"
+#define LAB_CLRUTRK       "!uTrack"
+#define LAB_CLRSSNS       "!Scanline"
+#define LAB_CLRUSNS       "!uScanline"
+#define LAB_CLRREFPNT     "!Refpos"
+#define LAB_CLRREFVIS     "!Radiohor"
+#define LAB_CLRREFVISOBS  "!Radiohor_obs"
+#define LAB_CLRRASTER     "!Raster"
+#define LAB_CLRNUMBER     "!Number"
 
-#define LAB_SHADOW_ONOFF "Sun shadow"
-#define LAB_SHADOWFACT   "Shadow fact"
+#define LAB_SHADOW_ONOFF  "Sun shadow"
+#define LAB_SHADOWFACT    "Shadow fact"
 
 static GdkColor gdkclr_1628(GdkColor ci)
 {
@@ -1443,6 +1527,11 @@ static void clrfunc(GtkColorButton *widget, gpointer data)
     gtk_color_button_get_color(widget,&db->clrs.ref_vis);
     db->clrs.ref_vis=gdkclr_1628(db->clrs.ref_vis);
   }
+  if (!strcmp(name,LAB_CLRREFVISOBS))
+  {
+    gtk_color_button_get_color(widget,&db->clrs.ref_visobs);
+    db->clrs.ref_visobs=gdkclr_1628(db->clrs.ref_visobs);
+  }
   if (!strcmp(name,LAB_CLRRASTER))
   {
     gtk_color_button_get_color(widget,&db->clrs.raster);
@@ -1480,6 +1569,7 @@ static void deffunc(GtkWidget *widget, gpointer data)
     Set_Colorsel(widget,LAB_CLRUSNS,&db->clrs.usat_scan);
     Set_Colorsel(widget,LAB_CLRREFPNT,&db->clrs.ref_pnt);
     Set_Colorsel(widget,LAB_CLRREFVIS,&db->clrs.ref_vis);
+    Set_Colorsel(widget,LAB_CLRREFVISOBS,&db->clrs.ref_visobs);
     Set_Colorsel(widget,LAB_CLRRASTER,&db->clrs.raster);
     Set_Colorsel(widget,LAB_CLRNUMBER,&db->clrs.number);
   } 
@@ -1500,6 +1590,7 @@ static GtkWidget *pref_fonts_clrs()
   int h=0,v=0;
   table=gtk_table_new(3,1,FALSE);
 
+  // text column selected
   tbut=Create_Label("");
   gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
                            GTK_FILL,GTK_FILL,1,1);
@@ -1525,6 +1616,7 @@ static GtkWidget *pref_fonts_clrs()
                            GTK_FILL,GTK_FILL,1,1);
   h++;
 
+  // button column selected
   h=0; v++;
   tbut=Create_Label("  Selected  ");
   gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
@@ -1550,6 +1642,7 @@ static GtkWidget *pref_fonts_clrs()
                            GTK_FILL,GTK_FILL,1,1);
   h++;
 
+  // button column unselected
   h=0; v++;
   tbut=Create_Label(" Unselected");
   gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
@@ -1578,6 +1671,7 @@ static GtkWidget *pref_fonts_clrs()
 
   wg[1]=Pack("",'h',table,1,NULL);
 //////////////////////////////////////////////////////////////////
+  // text column ref
   h=0; v=0;
   table=gtk_table_new(3,1,FALSE);
 
@@ -1591,6 +1685,32 @@ static GtkWidget *pref_fonts_clrs()
                            GTK_FILL,GTK_FILL,1,1);
   h++;
 
+  tbut=Create_Label(LAB_CLRREFVISOBS+1);
+  gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
+                           GTK_FILL,GTK_FILL,1,1);
+  h++;
+
+
+  // button column ref
+  h=0; v++;
+  tbut=Create_Colorsel(LAB_CLRREFPNT,&db->clrs.ref_pnt,clrfunc);
+  gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
+                           GTK_FILL,GTK_FILL,1,1);
+  h++;
+
+  tbut=Create_Colorsel(LAB_CLRREFVIS,&db->clrs.ref_vis,clrfunc);
+  gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
+                           GTK_FILL,GTK_FILL,1,1);
+  h++;
+
+  tbut=Create_Colorsel(LAB_CLRREFVISOBS,&db->clrs.ref_visobs,clrfunc);
+  gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
+                           GTK_FILL,GTK_FILL,1,1);
+  h++;
+
+
+  // text column raster
+  h=0; v++;
   tbut=Create_Label(LAB_CLRRASTER+1);
   gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
                            GTK_FILL,GTK_FILL,1,1);
@@ -1601,17 +1721,8 @@ static GtkWidget *pref_fonts_clrs()
                            GTK_FILL,GTK_FILL,1,1);
   h++;
 
+  // button column raster
   h=0; v++;
-
-  tbut=Create_Colorsel(LAB_CLRREFPNT,&db->clrs.ref_pnt,clrfunc);
-  gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
-                           GTK_FILL,GTK_FILL,1,1);
-  h++;
-
-  tbut=Create_Colorsel(LAB_CLRREFVIS,&db->clrs.ref_vis,clrfunc);
-  gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
-                           GTK_FILL,GTK_FILL,1,1);
-  h++;
   tbut=Create_Colorsel(LAB_CLRRASTER,&db->clrs.raster,clrfunc);
   gtk_table_attach(GTK_TABLE(table),tbut,v,v+1,h,h+1,
                            GTK_FILL,GTK_FILL,1,1);
@@ -1697,13 +1808,14 @@ void Create_preferences_wnd(GtkWidget *widget)
   Set_Button(wz,LAB_Y_DIR,db->rotor.y_south_is_0);
   Set_Button(wz,LAB_OUTON,db->out_on);
   Set_Button(wz,LAB_EXTPROG,db->ext_on);
+  Set_Button(wz,LAB_FREQ,db->hres);
   Set_Button(wz,LAB_START,db->start_now);
   Set_Button(wz,LAB_SERIAL,db->to_serial);
   Set_Button(wz,LAB_USB,db->to_usb);
   Set_Adjust(wz,LAB_COMPORT,"%d",db->rs232.portnr+PORTMIN);
   Set_Button(wz,LAB_DEQCINVX,db->rotor.inv_x);
   Set_Button(wz,LAB_DEQCINVY,db->rotor.inv_y);
-  Set_Button(wz,LAB_SEARCHFILES);
+  Set_Button(wz,LAB_SEARCHFILES,TRUE);
 //  Set_Adjust(wz,LAB_COMSPEED,"%d",db->rs232.speed);
 
   gtk_container_add(GTK_CONTAINER(wnd),wz);

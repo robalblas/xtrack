@@ -372,6 +372,33 @@ static void test_usbcommands(GtkWidget *widget, gpointer dat)
 }
 
 #endif
+#define LAB_FORCEPOS "Force position"
+#define LAB_DOFORCE "Force"
+#define LAB_FORCELAT "^Forced lat "
+#define LAB_FORCELON "^Forced lon "
+static void test_forcepos(GtkWidget *widget, gpointer data)
+{
+  char *name=(char *)data;
+  if (!strcmp(name,LAB_DOFORCE))
+    db->do_forcepos=Get_Button(widget,name);
+
+  if (!strcmp(name,LAB_FORCELAT))
+    db->forced_pos.lat=D2R(Get_Adjust(widget,name));
+
+  if (!strcmp(name,LAB_FORCELON))
+    db->forced_pos.lon=D2R(Get_Adjust(widget,name));
+
+  if (db->sat_sel)
+  {
+    db->sat_sel->do_forcepos=db->do_forcepos;
+    db->sat_sel->forced_pos=db->forced_pos;
+    if (!db->do_forcepos)
+    {
+      SAT *s;
+      for (s=db->sat; s; s=s->next) s->do_forcepos=FALSE;
+    }
+  }
+}
 
 static void close_debugwnd(GtkWidget *widget)
 {
@@ -405,14 +432,10 @@ static void debugcmd(GtkWidget *widget,gpointer data)
   }
 } 
 
-void Menu_Debug(GtkWidget *widget,gpointer data)
+static GtkWidget *uart_items()
 {
-  GtkWidget *w[6];
-  wnd=Find_Parent_Window(widget);
-  wnd=Create_Window(wnd,0,0,Lab_WNDDebug,close_debugwnd);
-  if (!wnd) return;
-  w[1]=w[2]=w[3]=NULL;
-  w[1]=Create_ButtonArray(LAB_RS232MON,debugcmd,1,
+  GtkWidget *w;
+  w=Create_ButtonArray(LAB_RS232MON,debugcmd,1,
                           LABEL,"Monitor RS232 commands",
                           ENTRY,LAB_RS232CMD,"%-30s","(No commands sent yet)",
                           LABEL,"__________________________________________",
@@ -422,14 +445,12 @@ void Menu_Debug(GtkWidget *widget,gpointer data)
                           RADIOn,LAB_EAST_FORCE,
                           RADIOn,LAB_WEST_FORCE,
                           0);
+  return w;
+}
 
-#if __ADD_USB__ == 1
-  w[2]=Create_ButtonArray(LAB_USBOPEN,test_usbcommands,3,
-         BUTTON,LAB_OUSB,
-         LED,LAB_OCU,0x0,
-         BUTTON,LAB_CUSB,
-    0);
-
+static GtkWidget *diseqc_items()
+{
+  GtkWidget *w[6];
   w[3]=Create_ButtonArray("Set positions",test_usbcommands,3,
          LABEL,"Address 0x",
          ENTRY,LAB_DEQCADDR ,"%02x ",0x31,
@@ -473,11 +494,42 @@ void Menu_Debug(GtkWidget *widget,gpointer data)
   w[4]=Pack(NULL,'h',w[4],1,w[5],1,NULL);
 
   w[3]=Pack(LAB_DEQC,'v',w[3],1,w[4],1,NULL);
+  return w[3];
+}
+
+void Menu_Debug(GtkWidget *widget,gpointer data)
+{
+  GtkWidget *w[6];
+  wnd=Find_Parent_Window(widget);
+  wnd=Create_Window(wnd,0,0,Lab_WNDDebug,close_debugwnd);
+  if (!wnd) return;
+  w[1]=w[2]=w[3]=NULL;
+
+  w[1]=uart_items();
+  w[4]=Create_ButtonArray(LAB_FORCEPOS,test_forcepos,4,
+         CHECK,LAB_DOFORCE,
+         LABEL,"",
+         LABEL,"",
+         LABEL,"",
+         SPIN,LAB_FORCELON ,"%d%d%d ",0,-180,180,
+         LABEL,"  ",
+         SPIN,LAB_FORCELAT ,"%d%d%d ",0,-90,90,
+//         LABEL,LAB_FORCELAT+1,
+        0);
+
+#if __ADD_USB__ == 1
+  w[2]=Create_ButtonArray(LAB_USBOPEN,test_usbcommands,3,
+         BUTTON,LAB_OUSB,
+         LED,LAB_OCU,0x0,
+         BUTTON,LAB_CUSB,
+    0);
+
+  w[3]=diseqc_items();
 #endif
   if ((!db->to_serial) && (!db->to_usb))
     w[0]=Pack("No items to show: USB and serial port disabled",'v',NULL);
   else
-    w[0]=Pack(NULL,'v',w[1],10,w[2],10,w[3],10,NULL);
+    w[0]=Pack(NULL,'v',w[1],10,w[2],10,w[3],10,w[4],10,NULL);
 
   gtk_container_add(GTK_CONTAINER(wnd),w[0]);
 

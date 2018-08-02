@@ -539,10 +539,9 @@ void draw_sensor(GtkWidget *wnd,SAT *sat,
 }
 
 // draw visibility line around sat
-void draw_vis(GtkWidget *wnd,SAT *sat,EPOINT *refpos,gboolean rgbm,GdkColor clr1)
+void draw_vis(GtkWidget *wnd,SAT *sat,EPOINT *refpos,gboolean rgbm,GdkColor clr1,float elev)
 {
   float d;
-  float elev=0;
   float c;
   float lon,lat;
   float lonp=0,latp=0;

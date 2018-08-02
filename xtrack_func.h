@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: xtrack_func.h,v 1.4 2017/04/11 20:45:31 ralblas Exp $
+ * RCSId: $Id: xtrack_func.h,v 1.5 2018/02/09 18:58:55 ralblas Exp $
  *
  * function defs for xrack
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: xtrack_func.h,v $
+ * Revision 1.5  2018/02/09 18:58:55  ralblas
+ * _
+ *
  * Revision 1.4  2017/04/11 20:45:31  ralblas
  * _
  *
@@ -90,6 +93,8 @@ int search_file(char *,char *,char *,char *,char *);
 
 int RS232_Open_Close(int doe_open,int portnr,int speed);
 int pos2godil(USB_ITEMS *,ROTOR *,float d1,float d2,int);
+void pos2extprog(SAT *sat,DIRECTION satdir);
+char *pos2uart(float portnr,char *command,float xazim,float yelev,int pass_e1_w0);
 
 // godil_regmap
 int usb_init_connect(USB_ITEMS *usb);

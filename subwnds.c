@@ -1,5 +1,5 @@
 /**************************************************
- * RCSId: $Id: subwnds.c,v 1.7 2018/02/02 23:13:19 ralblas Exp $
+ * RCSId: $Id: subwnds.c,v 1.8 2018/02/04 20:40:13 ralblas Exp $
  *
  * Satellite tracker 
  * Project: xtrack
@@ -7,6 +7,9 @@
  *
  * History: 
  * $Log: subwnds.c,v $
+ * Revision 1.8  2018/02/04 20:40:13  ralblas
+ * _
+ *
  * Revision 1.7  2018/02/02 23:13:19  ralblas
  * _
  *
@@ -60,15 +63,37 @@ extern DBASE *db;
 
 static struct tm simul_start_tm;
 
+struct tm to_utc(struct tm loc)
+{
+  struct tm tm;
+  tm=loc;
+  tm.tm_hour-=(int)db->utc_offset;
+  tm.tm_min-=((db->utc_offset-(int)db->utc_offset)*60);
+  mktime_ntz(&tm);
+  return tm;
+}
+
+struct tm to_loc(struct tm utc)
+{
+  struct tm tm;
+  tm=utc;
+  tm.tm_hour+=(int)db->utc_offset;
+  tm.tm_min+=((db->utc_offset-(int)db->utc_offset)*60);
+  mktime_ntz(&tm);
+  return tm;
+}
+
 void callback_strttm(GtkWidget *widget,gpointer data)
 {
   char *name=(char *)data;
+  db->genstart_tm=to_loc(db->genstart_tm);
   if (strstr(name,"year"))db->genstart_tm.tm_year=GTK_ADJUSTMENT(widget)->value-1900;
   if (strstr(name,"mon"))db->genstart_tm.tm_mon=GTK_ADJUSTMENT(widget)->value-1;
   if (strstr(name,"day"))db->genstart_tm.tm_mday=GTK_ADJUSTMENT(widget)->value;
   if (strstr(name,"hour"))db->genstart_tm.tm_hour=GTK_ADJUSTMENT(widget)->value;
   if (strstr(name,"min"))db->genstart_tm.tm_min=GTK_ADJUSTMENT(widget)->value;
   if (strstr(name,"sec"))db->genstart_tm.tm_sec=GTK_ADJUSTMENT(widget)->value;
+  db->genstart_tm=to_utc(db->genstart_tm);
 }
 
 
@@ -252,8 +277,8 @@ void callback_pred(GtkWidget *widget,gpointer data)
       return;
     }
     generate_txt(fp,db->track,db->sat_sel);
-    Create_Message("Info","Saved passes of selected in 'passes.txt'");
     fclose(fp);
+    Create_Message("Info","Saved passes of selected in 'passes.txt'");
   }
   if (!strcmp(name,LAB_SETSTRT))
   {
@@ -369,6 +394,7 @@ GtkWidget *Create_Timespin(char *label,char hv,void func(),struct tm *tm,char *t
   return widgeto;
 }
 
+#define NRCOL 9
 
 static void selected_row( GtkWidget      *clist,
                           gint            row,
@@ -382,7 +408,7 @@ static void selected_row( GtkWidget      *clist,
   char *text;
   int i;
 //warning: passing argument 1 of gtk_clist_get_text from incompatible pointer type
-  gtk_clist_get_text((GtkCList *)clist,row,6,&text);
+  gtk_clist_get_text((GtkCList *)clist,row,NRCOL-1,&text);
   if (!atoi(text))
   {
     clear_wnd(main_window);
@@ -431,16 +457,18 @@ void Create_predict_wnd(GtkWidget *widget)
 {
   GtkWidget *main_window=gtk_widget_get_toplevel(widget);
   GtkWidget *wnd,*wa,*wb,*wc,*wd,*we,*wf,*wg,*wl,*wq,*wx,*wy,*wz;
-
+  struct tm tm;
   if (!(db->sat_sel))
   {
     Create_Message("Error","No satellite selected.");
     return;
   }
-  db->genstart_tm=mom_tm(0.,&db->tm_off);
+  tm=mom_tm(db->utc_offset,&db->tm_off);   // local
+  db->genstart_tm=mom_tm(0.,&db->tm_off);  // UTC
+
   if (!(wnd=Create_Window(main_window,950,240,LAB_PRED,close_predwnd))) return;
   wa=Create_Entry(LAB_SAT,NULL,"%10s",(nr_sats(db->sat)>1? "more than 1" : db->sat_sel->satname));
-  wb=Create_Timespin(LAB_TMSTART,'h',callback_strttm,&db->genstart_tm,"yMdh",FALSE);
+  wb=Create_Timespin(LAB_TMSTART,'h',callback_strttm,&tm,"yMdh",FALSE);
   wc=Create_Timespin(LAB_TMPRRNG,'h',callback_rngtm,&db->genrange_tm,"Md",TRUE);
   wd=Create_Spin(LAB_ELEV_HOR,callback_rngtm,"%1d%1d%1d%1d",1,(int)(R2D(db->elev_horiz)+.5),-2,50);
   we=Create_Spin(LAB_ELEV_DET,callback_rngtm,"%1d%1d%1d%1d",1,(int)(R2D(db->elev_det)+.5),-2,80);
@@ -484,14 +512,16 @@ void Create_predict_wnd(GtkWidget *widget)
     NULL);
 */
 
-  wl=Create_Clist("Updown",selected_row,NULL,NULL,7,
+  wl=Create_Clist("Updown",selected_row,NULL,NULL,NRCOL,
                                                "Sat",10,
                                                "Uptime",18,
                                                "Downtime",18,
                                                "Maxtime",18,
                                                "Max elev",8,
+                                               "pos",3,
+                                               "dir",5,
                                                "Freq",8,
-                                               "",1,
+                                                "",1,
                                                 NULL);
 
   wq=Create_Button(LAB_CLOSE_PD,callback_pred);
@@ -499,7 +529,7 @@ void Create_predict_wnd(GtkWidget *widget)
   wy=Pack(NULL,'h',wx,1,wl,1,NULL);
 
   wz=Pack(NULL,'v',wy,5,wq,5,NULL);
-  gtk_clist_set_column_visibility((GtkCList *)wl,6,FALSE);
+  gtk_clist_set_column_visibility((GtkCList *)wl,NRCOL-1,FALSE);
   gtk_container_add(GTK_CONTAINER(wnd),wz);
   gtk_widget_show(wnd);
 /*
@@ -968,6 +998,7 @@ void cmd1(GtkWidget *widget, gpointer data)
       {
         sat->db->sat_sel=sat;
         report_nextpass(widget,sat);
+        Set_Entry(widget,LAB_KEPAGE,"%d",sat->orbit.data_age);
       }
     }
   }
@@ -1144,10 +1175,14 @@ void Get_Kepler(GtkWidget *wnd)
 {
   GtkWidget *wa,*wb,*wc,*wz;
   char *fn;
+  SAT *fsat;
+  for (fsat=db->sat; fsat; fsat=fsat->next) if (fsat->type==satellite) break;
+
   if (!(fn=strrchr(db->norad_file,DIR_SEPARATOR))) fn=db->norad_file; else fn++;
   if (!(wnd=Create_Window(wnd,0,0,Lab_Downloadwnd,NULL))) return; 
+
   wa=Create_ButtonArray("Kepler",func_kepfile,2,
-              RADIOs,LAB_KFN,LABEL,"",
+              RADIOs,LAB_KFN,ENTRY_NOFUNC,"!XXX","Age: %d days",(fsat? fsat->orbit.data_age: -1),
               RADIOn,LAB_KF1,LABEL,"",
               RADIOn,LAB_KF2,LABEL,"",
               RADIOn,LAB_KF3,LABEL,"",
@@ -1163,9 +1198,9 @@ void Get_Kepler(GtkWidget *wnd)
   wb=Create_Entry(LAB_DNWLDINFO,NULL,"%30s","");
   wc=Create_Entry(LAB_KFINFO,NULL,"%30s",db->norad_file);
   wz=Pack(NULL,'v',wa,5,wb,5,wc,5,NULL);
-  if (!strcmp(fn,LAB_KF1)) Set_Button(wa,LAB_KF1);
-  if (!strcmp(fn,LAB_KF2)) Set_Button(wa,LAB_KF2);
-  if (!strcmp(fn,LAB_KF3)) Set_Button(wa,LAB_KF3);
+  if (!strcmp(fn,LAB_KF1)) Set_Button(wa,LAB_KF1,TRUE);
+  if (!strcmp(fn,LAB_KF2)) Set_Button(wa,LAB_KF2,TRUE);
+  if (!strcmp(fn,LAB_KF3)) Set_Button(wa,LAB_KF3,TRUE);
   gtk_container_add(GTK_CONTAINER(wnd),wz);
   gtk_widget_show(wnd);
   place_window(wnd,0,0,smart_wndpos);

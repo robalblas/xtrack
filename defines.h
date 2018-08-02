@@ -86,6 +86,9 @@
 #define MENU_PINFO  "Help/Prog info"
 #define MENU_DEBUG  "Help/Debug"
 
+#define LAB_CURSPOS "!pos cursor"
+#define LAB_KEPAGE "Kepler age"
+
 #define Lab_WNDDebug "Debug"
 #define LAB_RS232CMD "Last sent:"
 
