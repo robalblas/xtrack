@@ -13,7 +13,7 @@
 # Linus: set OS="linux"
 # Windows: set OS="windows"; use mingw
 ##############################################################
-RELEASE1=2018.3a
+RELEASE1=2018.4
 RELEASE=\"$(RELEASE1)\"
 
 #Choose linux or windows
